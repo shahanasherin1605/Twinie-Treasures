@@ -1,41 +1,45 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { api, tokenKey } from "./api";
 
 const UserContext = createContext(null);
-const storageKey = "twinie-treasures-user";
-const defaultUser = {
-  name: "Twinie Shopper",
-  email: "",
-  phone: "",
-  address: "",
-};
 
 export function UserProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      return stored ? { ...defaultUser, ...JSON.parse(stored) } : defaultUser;
-    } catch {
-      return defaultUser;
-    }
-  });
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(user));
-  }, [user]);
+    if (!localStorage.getItem(tokenKey)) {
+      setAuthLoading(false);
+      return;
+    }
+    api("/profile").then(({ user: profile }) => setUser(profile)).catch(() => localStorage.removeItem(tokenKey)).finally(() => setAuthLoading(false));
+  }, []);
 
-  const updateProfile = (updates) => {
-    setUser((current) => ({ ...current, ...updates }));
+  const authenticate = async (mode, form) => {
+    const result = await api(`/auth/${mode}`, { method: "POST", body: form });
+    localStorage.setItem(tokenKey, result.token);
+    setUser(result.user);
+    return result.user;
   };
 
-  const value = useMemo(() => ({ user, updateProfile }), [user]);
+  const signOut = async () => {
+    try { await api("/auth/logout", { method: "POST" }); } catch { /* End the local session even if the server is unavailable. */ }
+    localStorage.removeItem(tokenKey);
+    setUser(null);
+  };
 
+  const updateProfile = async (updates) => {
+    const result = await api("/profile", { method: "PATCH", body: updates });
+    setUser(result.user);
+    return result.user;
+  };
+
+  const value = useMemo(() => ({ user, authLoading, authenticate, signOut, updateProfile }), [user, authLoading]);
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {
   const context = useContext(UserContext);
-  if (!context) {
-    throw new Error("useUser must be used inside UserProvider");
-  }
+  if (!context) throw new Error("useUser must be used inside UserProvider");
   return context;
 }

@@ -3,31 +3,40 @@ import React, { createContext, useContext, useMemo, useState } from "react";
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("twinie-treasures-cart") || "[]"); }
+    catch { return []; }
+  });
+
+  const saveItems = (nextItems) => {
+    localStorage.setItem("twinie-treasures-cart", JSON.stringify(nextItems));
+    return nextItems;
+  };
 
   const addItem = (product) => {
-    setItems((prevItems) => {
+    setItems((prevItems) => saveItems((() => {
       const existing = prevItems.find((item) => item.id === product.id);
       if (existing) {
         return prevItems.map((item) =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
+          item.id === product.id ? { ...item, qty: Math.min(item.qty + 1, 20) } : item
         );
       }
       return [...prevItems, { ...product, qty: 1 }];
-    });
+    })()));
   };
 
   const removeItem = (id) => {
-    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
+    setItems((prevItems) => saveItems(prevItems.filter((item) => item.id !== id)));
   };
 
-  const clearCart = () => setItems([]);
+  const updateQuantity = (id, qty) => setItems((prevItems) => saveItems(prevItems.map((item) => item.id === id ? { ...item, qty: Math.max(1, Math.min(20, qty)) } : item)));
+  const clearCart = () => setItems(saveItems([]));
 
   const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
   const totalPrice = items.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   const value = useMemo(
-    () => ({ items, addItem, removeItem, clearCart, totalItems, totalPrice }),
+    () => ({ items, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }),
     [items, totalItems, totalPrice]
   );
 

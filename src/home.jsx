@@ -1,102 +1,44 @@
-import React from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "./api";
+import ProductCard from "./ProductCard";
+import heroPhoto from "./b5332377cd41ac21a550384a00b61a37.jpg";
 
 export default function Home() {
+  const [products, setProducts] = useState([]);
+  useEffect(() => { api("/products").then(({ products: catalog }) => setProducts(catalog.slice(0, 4))).catch(() => {}); }, []);
+
   return (
-    <div>
-
-      {/* ✅ Hero Section */}
-      <section className="hero">
-        <div className="hero-text">
-          <h1>CHERISH YOUR MEMORIES</h1>
-          <p>Beautiful Frames For Every Memory</p>
-          <p>
-            Handcrafted photo frames in different sizes and colors to decorate
-            your precious moments.
-          </p>
-          <a href="/frames" className="btn-primary shop-now-link">SHOP NOW</a>
+    <main>
+      <section className="home-hero">
+        <div className="hero-copy">
+          <p className="eyebrow">A LITTLE ROOM FOR WHAT MATTERS</p>
+          <h1>Keep your<br />favorite moments<br /><em>in the picture.</em></h1>
+          <p>Thoughtful frames, made for the photos you never scroll past.</p>
+          <Link to="/frames" className="button button-yellow">Shop photo frames <span aria-hidden="true">→</span></Link>
+          <div className="hero-assurance"><span>✓</span> Carefully packed <span>·</span> Ready to gift</div>
         </div>
-        <div className="hero-image">
-          <img
-            src="src/b5332377cd41ac21a550384a00b61a37.jpg"
-            alt="Photo Frame Banner"
-          />
+        <div className="hero-photo" style={{ backgroundImage: `linear-gradient(90deg, rgba(20, 33, 30, .08), rgba(20, 33, 30, .05)), url("${heroPhoto}")` }} role="img" aria-label="A framed family photograph displayed at home">
+          <div className="hero-note"><strong>Make it yours.</strong><span>Choose a finish. Find the right size.</span></div>
+        </div>
+        <div className="hero-index">01 <span>/</span> 03</div>
+      </section>
+
+      <section className="benefit-strip" aria-label="Shop benefits">
+        <div><span className="benefit-icon">01</span><p><strong>Made to last</strong><small>Considered materials, clean finish</small></p></div>
+        <div><span className="benefit-icon">02</span><p><strong>Sizes that fit</strong><small>From desk-size to statement piece</small></p></div>
+        <div><span className="benefit-icon">03</span><p><strong>Gift ready</strong><small>Carefully packed for giving</small></p></div>
+      </section>
+
+      <section className="home-products section-wrap">
+        <div className="section-heading"><div><p className="eyebrow">A GOOD PLACE TO START</p><h2>Frames worth keeping.</h2></div><Link to="/frames">View all frames <span aria-hidden="true">→</span></Link></div>
+        <div className="product-grid">
+          {products.map((product) => <ProductCard key={product.id} product={product} />)}
         </div>
       </section>
 
-      {/* ✅ Shop By Size */}
-      <section className="shop-options">
-        <div className="options-grid">
-          <button>4 × 6 Inches</button>
-          <button>5 × 7 Inches</button>
-          <button>6 × 8 Inches</button>
-          <button>8 × 10 Inches</button>
-          <button>A4 Size</button>
-          <button>A3 Size</button>
-          <button>Custom Size</button>
-        </div>
-      </section>
-
-      {/* ✅ Shop By Color */}
-      <section className="shop-options">
-        <div className="options-grid">
-          <button>Black</button>
-          <button>White</button>
-          <button>Wooden</button>
-          <button>Golden</button>
-          <button>Silver</button>
-          <button>Rose Gold</button>
-          <button>Pink</button>
-          <button>Blue</button>
-          <button>All Colors</button>
-        </div>
-      </section>
-
-      {/* ✅ Popular Frames */}
-      <section className="featured">
-        <div className="grid">
-          <div className="card">
-            <img
-              src="src/89b35d8f22e78e97ff86ae8ca6963d3f.jpg"
-              alt="Classic Black Frame"
-            />
-            <h3>Classic Black Frame</h3>
-            <p>8 × 10 Inches</p>
-            <p>₹599</p>
-            <p>⭐ 128 reviews</p>
-          </div>
-          <div className="card">
-            <img
-              src="src/89b35d8f22e78e97ff86ae8ca6963d3f - Copy.jpg"
-              alt="Elegant White Frame"
-            />
-            <h3>Elegant White Frame</h3>
-            <p>5 × 7 Inches</p>
-            <p>₹499</p>
-            <p>⭐ 98 reviews</p>
-          </div>
-          <div className="card">
-            <img
-              src="src/dbd4f2e08650c97424786bbb456b9175.jpg"
-              alt="Premium Wooden Frame"
-            />
-            <h3>Premium Wooden Frame</h3>
-            <p>A4 Size</p>
-            <p>₹699</p>
-            <p>⭐ 156 reviews</p>
-          </div>
-          <div className="card">
-            <img
-              src="src/0472d39f48717c36431ef1614e026cb8.jpg"
-              alt="Royal Golden Frame"
-            />
-            <h3>Royal Golden Frame</h3>
-            <p>8 × 10 Inches</p>
-            <p>₹799</p>
-            <p>⭐ 110 reviews</p>
-          </div>
-        </div>
-      </section>
-    </div>
+      <section className="home-quote"><span>“</span><p>Some things deserve a place on the wall, not just in your camera roll.</p><Link to="/frames">Find your frame <span aria-hidden="true">→</span></Link></section>
+    </main>
   );
 }
 

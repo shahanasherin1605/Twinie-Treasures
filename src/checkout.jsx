@@ -1,44 +1,58 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "./CartContext";
 import { useUser } from "./UserContext";
+import { api } from "./api";
 
 export default function Checkout() {
   const { items, totalItems, totalPrice, clearCart } = useCart();
   const { user } = useUser();
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState(null);
   const navigate = useNavigate();
 
-  const handlePlaceOrder = () => {
-    clearCart();
-    navigate("/", { replace: true });
+  const handlePlaceOrder = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const { order } = await api("/orders", { method: "POST", body: { items: items.map(({ id, qty }) => ({ id, qty })), paymentMethod } });
+      clearCart();
+      setPlacedOrder(order);
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setBusy(false);
+    }
   };
+
+  if (placedOrder) return <main className="page checkout-page"><section className="order-success"><span className="success-mark">✓</span><p className="eyebrow">ORDER CONFIRMED</p><h1>It’s in good hands.</h1><p>Order <strong>{placedOrder.id}</strong> has been placed. We’ll send updates to {user.email}.</p><Link className="button button-yellow" to="/profile">View your orders</Link><Link className="text-button" to="/frames">Continue shopping</Link></section></main>;
 
   return (
     <main className="page checkout-page">
       <section className="page-intro">
         <div>
-          <p className="breadcrumb">Home / Checkout</p>
-          <h2>Checkout</h2>
-          <p>Review your order and choose a payment method to complete your purchase.</p>
+          <p className="eyebrow">ALMOST YOURS</p><h1>Checkout</h1><p>Confirm delivery and payment details for your order.</p>
         </div>
       </section>
 
       <section className="checkout-grid">
         <article className="checkout-card">
-          <h3>Shipping & contact</h3>
+          <h3>Delivering to</h3>
           <div className="checkout-field">
             <span>Name</span>
-            <strong>{user.name || "Not provided"}</strong>
+            <strong>{user?.name || "Not provided"}</strong>
           </div>
           <div className="checkout-field">
             <span>Phone</span>
-            <strong>{user.phone || "Not provided"}</strong>
+            <strong>{user?.phone || "Not provided"}</strong>
           </div>
           <div className="checkout-field">
             <span>Address</span>
-            <strong>{user.address || "Not provided"}</strong>
+            <strong>{user?.address || "Not provided"}</strong>
           </div>
+          <Link className="text-button" to="/profile">Edit delivery details</Link>
         </article>
 
         <article className="checkout-card">
@@ -52,7 +66,7 @@ export default function Checkout() {
                 checked={paymentMethod === "card"}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               />
-              Credit / Debit Card
+              Card <span className="payment-hint">Demo only; no payment is charged</span>
             </label>
             <label>
               <input
@@ -62,7 +76,7 @@ export default function Checkout() {
                 checked={paymentMethod === "upi"}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               />
-              UPI
+              UPI <span className="payment-hint">Demo only; no payment is charged</span>
             </label>
             <label>
               <input
@@ -72,7 +86,7 @@ export default function Checkout() {
                 checked={paymentMethod === "netbanking"}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               />
-              Netbanking
+              Netbanking <span className="payment-hint">Demo only; no payment is charged</span>
             </label>
             <label>
               <input
@@ -82,7 +96,7 @@ export default function Checkout() {
                 checked={paymentMethod === "cod"}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               />
-              Cash on Delivery
+              Cash on delivery
             </label>
           </div>
         </article>
@@ -94,8 +108,10 @@ export default function Checkout() {
           <p>{totalItems} item{totalItems !== 1 ? "s" : ""}</p>
           <p className="summary-price">₹{totalPrice}</p>
           <p className="payment-note">Payment method: {paymentMethod.toUpperCase()}</p>
-          <button className="btn-primary place-order" onClick={handlePlaceOrder}>
-            Place Order
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <p className="payment-disclaimer">Online payments are recorded as demo orders only. Use COD for a real-world trial without charging a card.</p>
+          <button className="button button-yellow place-order" onClick={handlePlaceOrder} disabled={busy || !items.length || !user?.phone || !user?.address}>
+            {busy ? "Placing order…" : "Place your order"}
           </button>
         </div>
       </section>

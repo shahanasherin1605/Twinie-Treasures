@@ -1,24 +1,28 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "./UserContext";
-
-const userActivity = [
-  { id: 1, action: "Ordered White Frame", detail: "Order #3472 completed", date: "2026-06-20" },
-  { id: 2, action: "Added Black Frame to cart", detail: "3 items in cart", date: "2026-06-22" },
-  { id: 3, action: "Viewed Golden Frame", detail: "Browsed premium frames", date: "2026-06-24" },
-];
+import { api } from "./api";
 
 export default function Profile() {
-  const { user, updateProfile } = useUser();
+  const { user, authLoading, updateProfile, signOut } = useUser();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    address: user.address,
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
   });
   const [saved, setSaved] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setFormData({
+    if (user?.id) api("/orders").then(({ orders: orderHistory }) => setOrders(orderHistory)).catch((loadError) => setError(loadError.message));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user) setFormData({
       name: user.name,
       email: user.email,
       phone: user.phone,
@@ -34,17 +38,20 @@ export default function Profile() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    updateProfile(formData);
-    setSaved(true);
+    setBusy(true);
+    setError("");
+    updateProfile(formData).then(() => setSaved(true)).catch((saveError) => setError(saveError.message)).finally(() => setBusy(false));
   };
+
+  if (authLoading) return <main className="page"><p>Loading your account…</p></main>;
+  if (!user) return <main className="page empty-state"><h1>Your account, your orders.</h1><p>Sign in to view saved details and order updates.</p><Link className="button button-yellow" to="/login">Sign in</Link></main>;
 
   return (
     <main className="page profile-page">
       <section className="page-intro">
         <div>
-          <p className="breadcrumb">Home / Profile</p>
-          <h2>Your Profile</h2>
-          <p>Manage your account and save your address and phone number once for future orders.</p>
+          <p className="eyebrow">YOUR ACCOUNT</p><h1>Good to see you, {user.name.split(" ")[0]}.</h1><p>Manage your delivery details and keep up with your orders.</p>
+          <button className="text-button sign-out-button" onClick={() => signOut().then(() => navigate("/"))}>Sign out</button>
         </div>
       </section>
 
@@ -68,26 +75,24 @@ export default function Profile() {
               Address
               <textarea name="address" rows="4" value={formData.address} onChange={handleChange} />
             </label>
-            <button type="submit" className="btn-primary">Save profile</button>
-            {saved && <p className="saved-note">Profile updated successfully.</p>}
+            <button type="submit" className="button button-yellow" disabled={busy}>{busy ? "Saving…" : "Save delivery details"}</button>
+            {saved && <p className="saved-note" role="status">Your details are saved to your account.</p>}
+            {error && <p className="form-error" role="alert">{error}</p>}
           </form>
         </article>
 
         <article className="profile-card activity-card">
           <div className="activity-header">
-            <h3>Recent activity</h3>
-            <span>{userActivity.length} items</span>
+            <h3>Your orders</h3>
+            <span>{orders.length} {orders.length === 1 ? "order" : "orders"}</span>
           </div>
           <div className="activity-list">
-            {userActivity.map((item) => (
-              <div key={item.id} className="activity-item">
-                <div>
-                  <p className="activity-action">{item.action}</p>
-                  <p className="activity-detail">{item.detail}</p>
-                </div>
-                <span className="activity-date">{item.date}</span>
-              </div>
-            ))}
+            {orders.map((order) => <article key={order.id} className="order-item">
+              <div className="order-heading"><div><p className="activity-action">Order {order.id}</p><p className="activity-detail">{new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })} · {order.status}</p></div><strong>₹{order.total}</strong></div>
+              <div className="order-products">{order.items.map((item) => <div key={item.id}><img src={item.image} alt="" /><span>{item.name} · {item.size}</span><small>× {item.qty}</small></div>)}</div>
+              <p className="activity-detail">{order.paymentMethod.toUpperCase()} · {order.paymentStatus}</p>
+            </article>)}
+            {orders.length === 0 && <div className="orders-empty"><p>No orders just yet.</p><Link to="/frames">Find your first frame →</Link></div>}
           </div>
         </article>
       </section>

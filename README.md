@@ -1,44 +1,42 @@
-cd "c:\Users\shahana sherin\photo-frame-store"
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/<your-username>/<repo-name>.git
-git push -u origin main# Photo Frame Store
+# Twinie Treasures
 
-A React + Vite photo frame storefront.
+A responsive React storefront with a Node.js API and MySQL-backed customer accounts, inventory, and order history.
 
-## Build
+## Requirements
 
-The project has been built successfully to `dist/`.
+- Node.js 20.6 or newer
+- MySQL 8 (local or remote)
+
+## Local setup
+
+1. Install dependencies with `npm install`.
+2. Create the database in MySQL:
+
+   ```sql
+   CREATE DATABASE photo_frame_store CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+
+3. Copy `.env.example` to `.env` and enter your MySQL password and connection settings.
+4. Run `npm run dev` and open `http://localhost:5173`.
+
+The API creates its tables and seeds initial inventory at startup. Inventory, customer accounts, orders, and order items persist in MySQL. Passwords are salted and hashed. Authentication tokens are held in server memory, so customers sign in again after an API server restart.
+
+## MySQL tables
+
+- `users`: customer accounts and saved delivery details
+- `inventory`: available stock per catalog product
+- `orders`: totals, payment choice/status, shipping address, and timestamp
+- `order_items`: purchased products and price/quantity snapshots
+
+Order placement is transactional. The API uses catalog prices (not browser-submitted prices), locks inventory rows, checks availability, writes the order and its items, and decrements stock atomically.
+
+## Build and production
 
 ```bash
 npm run build
+npm start
 ```
 
-## Deployment Options
+Set the MySQL environment variables for the production database before running `npm start`. The Node server serves the built frontend and API from one origin. Keep database credentials private; use managed MySQL and HTTPS for deployment.
 
-### GitHub Pages
-
-1. Initialize git locally and create a GitHub repository.
-2. Push the project to GitHub.
-3. In the repository settings, enable GitHub Pages and select the `gh-pages` branch or `main` branch with `/docs` folder.
-4. If using Vite, configure `base` in `vite.config.js` for the GitHub Pages path if needed.
-
-### Netlify
-
-1. Create a Netlify account.
-2. Drag the `dist/` folder into Netlify Drop, or connect the GitHub repo.
-3. Set the build command to `npm run build` and publish directory to `dist`.
-
-### Vercel
-
-1. Create a Vercel account.
-2. Import the GitHub repo.
-3. Use the default settings with `npm run build` and `dist` as the output directory.
-
-## Notes
-
-- The app is ready for deployment from the `dist/` folder.
-- The current environment does not have `git` installed, so remote repository creation and push cannot be completed here.
-- Once `git` is available, I can help you initialize the repo and set up GitHub deployment.
+Card, UPI, and netbanking are demo-only and do not charge customers. Connect a payment provider before accepting online payments. Cash on delivery is available for checkout testing.
